@@ -120,7 +120,7 @@ PS.init = function( system, options ) {
 
 	PS.statusText( "Game" );
 
-  	PS.statusText("Hold click to rain");
+  	PS.statusText("Hold click to rain ACID!");
   	initFloor();
   	PS.timerStart(2, tick);
   	draw();
@@ -142,7 +142,7 @@ PS.touch = function( x, y, data, options ) {
 	// Uncomment the following code line
 	// to inspect x/y parameters:
 
-	//PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
+	PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
 
 	raining = true;
 	rainX = x;
@@ -185,7 +185,7 @@ This function doesn't have to do anything. Any value returned is ignored.
 PS.enter = function( x, y, data, options ) {
 	// Uncomment the following code line to inspect x/y parameters:
 
-	PS.debug( "PS.enter() @ " + x + ", " + y + "\n" );
+	//PS.debug( "PS.enter() @ " + x + ", " + y + "\n" );
 
 	rainX = x;
 	rainY = y;

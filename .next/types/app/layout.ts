@@ -1,4 +1,4 @@
-// File: C:\Users\creep\Documents\Visual Studio Code\IMGD Website\app\layout.js
+// File: C:\Users\creep\Documents\Visual Studio Code\IMGD Website\IMGDGameDesign1\app\layout.js
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

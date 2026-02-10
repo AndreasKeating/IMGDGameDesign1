@@ -13,7 +13,7 @@ export default function Home() {
                 
         <br />
 
-        <a href="/resources/Dev02/index.html">Dev 02: "name"</a>
+        <a href="/PuzzleGame/game.html">Dev 02: "Box puzzle game"</a>
         <br />
 
         <a href="/resources/Dev03/index.html">Dev 03: "name"</a>

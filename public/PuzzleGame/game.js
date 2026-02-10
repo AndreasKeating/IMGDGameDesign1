@@ -48,220 +48,59 @@ Any value returned is ignored.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
 
-const Width = 16, Height = 16;
 
-const LEGEND = {
-	"#": {base: "wallGray", color: 0x777777},
-	".": {base: "empty"},
-	"G": {base: "wallGreen", color: 0x3B6318},
-	"B": {base: "wallBrown", color: 0x7D4B29}, 
-	"L": {base: "wallVeryLightGray", color: 0xFFFFFF},//White: 0xFFFFFF  Gray: 0xDBD9D9
-	"Y": {base: "wallYellow", color: 0xE5E827},
-}
+//Level "Manager"____________________________________________
+const height = 30, width = 30;
+const levels = ["##############################", //Main menu
+		"#############################1", //Level 1
+		"#############################2", // level 2
+		"#############################3",  // Level 3
+		"#############################4"  // "Win screen"
+	];
 
-const levels = [
-
-	[ // 1st Level (Standard Floor)
-	 "................", 
-	 "................",
-	 "................",
-	 "................",
-	 "................",
-	 "................",
-	 "................",
-	 "................", //middle
-	 "................",
-	 "................",
-	 "################",
-	 "################",
-	 "################",
-	 "################",
-	 "################",
-	 "################"],
-
-	[ // 2nd Level (Tree)
-	 "................", 
-	 "................",
-	 "................",
-	 "................",
-	 "......GGG.......",
-	 ".....GGGGGG.....",
-	 "....GGGGGGGG....",
-	 "....GGGGGGGG....",  //middle
-	 "....GGGBGGGG....",
-	 ".....GGGBG......",
-	 "......BBBB......",
-	 "......BBBB......",
-	 "......BBBB......",
-	 "......BBBB......",
-	 "......BBBB......",
-	 "......BBBB......"],
-	
-	[ // 3rd Level (Mountain)
-	 "................",
-	 "...YY...........",
-	 "..YYYY..........",
-	 "..YYYY..........",
-	 "...YY...........",
-	 "........LL......", 
-	 ".......LLLL.....",
-	 "......LLLLLL....", //middle
-	 ".....#LLL#L#L...",
-	 "...#L#L##L###L..",
-	 "..#############.",
-	 ".##############.",
-	 "################",
-	 "################",
-	 "################",
-	 "################"],
-];
-
-// splits my strings into separate characters
-const parsedLevels = levels.map(
-	function (level) {
-		return level.map(function (row) {
-			return row.split("")
-		})
-	}
-);
-
-let mode = "menu";
 let levelIndex = 0;
 
-// Main Menu Loader--------------------------------
-function loadMenu() {
-	mode = "menu";
+function loadNextLevel() {
+	levelIndex++;
 
-	raining = false;
-	drops = [];
-	spawnWait = 0;
-
-	drawMenu();
-}
-
-function drawMenu() {
-  PS.color(PS.ALL, PS.ALL, 0xFFFFFF); // Clear everything to white
-  PS.glyph(PS.ALL, PS.ALL, 0); // Clear all Text
-
-  PS.statusText("Press Num keys from 1-3 to load a level");
-
-  function textPrinter(x, y, text, glyphColor) {
-    for (let i = 0; i < text.length; i += 1) {
-      const textCursor = x + i;
-      PS.glyph(textCursor, y, text.charCodeAt(i));
-      PS.glyphColor(textCursor, y, glyphColor);
-    }
-  }
-
-  textPrinter(2, 2, "LEVEL SELECT", 0x000000);
-
-  textPrinter(1, 6, "1 = FLOOR",   0x0000FF);	
-  textPrinter(1, 8, "2 = TREE",    0x0000FF);
-  textPrinter(1,10, "3 = MOUNTAIN",0x0000FF);
-
-  textPrinter(3, 13, "ESC = MENU", 0x555555);
-}
-
-// Level Loader--------------------------------
-function loadLevel(levelIndex) {
-
-  mode = "play";
-
-  raining = false;
-  drops = [];
-  spawnWait = 0;
-
-  levelMap = parsedLevels[levelIndex].map(
-	function (row) {
-		return row.slice();
-	});
-
-  draw();
-}
-
-let raining = false, rainX = 0, rainY = 0, drops = [], spawnWait = 0;
-let levelMap = [];
-
-function destructible(ch) {
-	return ch !== ".";
-}
-
-function setTile(x, y, ch) {
-	levelMap[y][x] = ch;
-}
-
-// Draw----------------------------------
-function draw() {
-	PS.color(PS.ALL, PS.ALL, 0xCAF6FC); //Clear all to light Blue
-	PS.glyph(PS.ALL, PS.ALL, 0); // Clear all text
-
-  	for (let y = 0; y < Height; y += 1) {
-		for (let x = 0; x < Width; x += 1) {
-    		const ch = levelMap[y][x];
-			const tile = LEGEND[ch];
-
-			if (tile.color !== undefined)
-				PS.color(x, y, tile.color);
-		}
+	if (levelIndex >= levels.length) {
+		levelIndex = 0;
 	}
 
-	for (const p of drops) {
-		PS.color(p.x, p.y, 0x0DDE00); // color Acid Rain
-	}
+	loadLevel(levelindex);
 }
 
-// Tick----------------------------------
-function tick() {
-	if (mode !== "play") {
-		return;
-	}
-
-	//only applies delay when it is raining
-  	if (raining) {
-    	if (spawnWait-- <= 0) { 
-			drops.push({ x: rainX, y: rainY }); 
-			spawnWait = 2; 
-		}
-  	} else spawnWait = 0;
-
-  	for (let i = drops.length - 1; i >= 0; i -= 1) {
-    	const p = drops[i];
-		const nextYPosition = p.y + 1;
-		
-    	if (nextYPosition >= Height) { 
-			drops.splice(i, 1); 
-			continue; 
-		}
-
-		//collisoon checker and "destroyer"
-		const belowDrop = levelMap[nextYPosition][p.x];
-    	if (destructible(belowDrop)) {
-			setTile(p.x, nextYPosition, ".");
-			drops.splice(i, 1); 
-			continue; 
-		}
-
-    	p.y = nextYPosition;
-  	}
-
-	draw();
-}
-
-//------------------------------------------------------------------------------------
 
 
-//Perlenspiel Functions----------------------------------
+
+
 PS.init = function( system, options ) {
+	// Uncomment the following code line
+	// to verify operation:
 
-	//PS.debug( "TEST PS.init() called\n" );
+	// PS.debug( "PS.init() called\n" );
 
-	PS.gridSize(Width, Height);
+	// This function should normally begin
+	// with a call to PS.gridSize( x, y )
+	// where x and y are the desired initial
+	// dimensions of the grid.
+	// Call PS.gridSize() FIRST to avoid problems!
+	// The sample call below sets the grid to the
+	// default dimensions (8 x 8).
+	// Uncomment the following code line and change
+	// the x and y parameters as needed.
 
-	PS.statusText( "Game" );
+	// PS.gridSize( 8, 8 );
 
-	PS.timerStart(2, tick);
-	loadMenu();
+	// This is also a good place to display
+	// your game title or a welcome message
+	// in the status line above the grid.
+	// Uncomment the following code line and
+	// change the string parameter as needed.
 
+	// PS.statusText( "Game" );
+
+	// Add any other initialization code you need here.
 };
 
 /*
@@ -275,17 +114,13 @@ This function doesn't have to do anything. Any value returned is ignored.
 */
 
 PS.touch = function( x, y, data, options ) {
+	// Uncomment the following code line
+	// to inspect x/y parameters:
 
-	//PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
+	// PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
 
-	if (mode !== "play") {
-		return;
-	}
-
-	raining = true;
-	rainX = x;
-	rainY = y;
-
+	// Add code here for mouse clicks/touches
+	// over a bead.
 };
 
 /*
@@ -301,9 +136,7 @@ This function doesn't have to do anything. Any value returned is ignored.
 PS.release = function( x, y, data, options ) {
 	// Uncomment the following code line to inspect x/y parameters:
 
-	//PS.debug( "PS.release() @ " + x + ", " + y + "\n" );
-
-	raining = false;
+	// PS.debug( "PS.release() @ " + x + ", " + y + "\n" );
 
 	// Add code here for when the mouse button/touch is released over a bead.
 };
@@ -321,10 +154,7 @@ This function doesn't have to do anything. Any value returned is ignored.
 PS.enter = function( x, y, data, options ) {
 	// Uncomment the following code line to inspect x/y parameters:
 
-	//PS.debug( "PS.enter() @ " + x + ", " + y + "\n" );
-
-	rainX = x;
-	rainY = y;
+	// PS.debug( "PS.enter() @ " + x + ", " + y + "\n" );
 
 	// Add code here for when the mouse cursor/touch enters a bead.
 };
@@ -342,7 +172,7 @@ This function doesn't have to do anything. Any value returned is ignored.
 PS.exit = function( x, y, data, options ) {
 	// Uncomment the following code line to inspect x/y parameters:
 
-	//PS.debug( "PS.exit() @ " + x + ", " + y + "\n" );
+	// PS.debug( "PS.exit() @ " + x + ", " + y + "\n" );
 
 	// Add code here for when the mouse cursor/touch exits a bead.
 };
@@ -357,9 +187,7 @@ This function doesn't have to do anything. Any value returned is ignored.
 PS.exitGrid = function( options ) {
 	// Uncomment the following code line to verify operation:
 
-	//PS.debug( "PS.exitGrid() called\n" );
-
-	raining = false;
+	// PS.debug( "PS.exitGrid() called\n" );
 
 	// Add code here for when the mouse cursor/touch moves off the grid.
 };
@@ -375,25 +203,11 @@ This function doesn't have to do anything. Any value returned is ignored.
 */
 
 PS.keyDown = function( key, shift, ctrl, options ) {
+	// Uncomment the following code line to inspect first three parameters:
 
-	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
+	// PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
-	// "ESC" --> return to menu
-	if (key === PS.KEY_ESCAPE || key === 27) {
-		loadMenu();
-		return;
-	}
-
-	if (mode !== "menu") {
-		return;
-	} else if (key >= 49 && key <= 57) {
-		const index = key - 49; // '1'->0, '2'->1, etc.
-		
-		if (index >= 0 && index < levels.length) {
-		loadLevel(index);
-		}
-	}
-
+	// Add code here for when a key is pressed.
 };
 
 /*
@@ -409,7 +223,7 @@ This function doesn't have to do anything. Any value returned is ignored.
 PS.keyUp = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
-	//PS.debug( "PS.keyUp(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
+	// PS.debug( "PS.keyUp(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
 	// Add code here for when a key is released.
 };

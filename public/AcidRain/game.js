@@ -50,6 +50,7 @@ Any value returned is ignored.
 
 const Width = 16, Height = 16;
 
+//Levels --------------------------------------------
 const LEGEND = {
 	"#": {base: "wallGray", color: 0x777777},
 	".": {base: "empty"},
@@ -140,7 +141,7 @@ function loadMenu() {
 }
 
 function drawMenu() {
-  PS.color(PS.ALL, PS.ALL, 0xFFFFFF); // Clear everything to white
+  PS.color(PS.ALL, PS.ALL, 0xEBEBEB); // Clear everything to white
   PS.glyph(PS.ALL, PS.ALL, 0); // Clear all Text
 
   PS.statusText("Press Num keys from 1-3 to load a level");
@@ -256,6 +257,9 @@ PS.init = function( system, options ) {
 	//PS.debug( "TEST PS.init() called\n" );
 
 	PS.gridSize(Width, Height);
+
+	PS.border(PS.ALL, PS.ALL, 0); //Removes the grid
+
 
 	PS.statusText( "Game" );
 

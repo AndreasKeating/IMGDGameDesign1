@@ -16,7 +16,7 @@ export default function Home() {
         <a href="/PuzzleGame/game.html">Dev 02: "Box puzzle game"</a>
         <br />
 
-        <a href="/resources/Dev03/index.html">Dev 03: "name"</a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeyv76_FXG4S9703pvVVnzDdo4i_lWusQ1VmqJq3g0wZ7wJ-g/viewform?usp=publish-editor">Dev 02: Playtest Survey</a>
       </section>
     </main>
   );

@@ -48,59 +48,347 @@ Any value returned is ignored.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
 
+const Height = 30, Width = 30;
 
-//Level "Manager"____________________________________________
-const height = 30, width = 30;
-const levels = ["##############################", //Main menu
-		"#############################1", //Level 1
-		"#############################2", // level 2
-		"#############################3",  // Level 3
-		"#############################4"  // "Win screen"
-	];
+//Levels Info--------------------------------
+const LEGEND = {
+	"#": {base: "wall", 		solid: true},
+	".": {base: "floor", 		solid: false},
+	"=": {base: "objective", 	solid: false, 	objective: true},
 
+	"g": {base: "presurePlateGreen", 	solid: false},
+	"y": {base: "presurePlateYellow", 	solid: false},
+
+	"1": {base: "doorGreen", 	solid: true},
+	"2": {base: "doorYellow", 	solid: true},
+
+	//Spawns
+	"+": {base: "floor", 	spawn: "player"},
+	"G": {base: "floor", 	spawn: "boxGreen"},
+	"Y": {base: "floor", 	spawn: "boxYellow"},
+
+	//I'll add more if I need...
+}
+
+const TERRAIN_COLOR = {
+  wall: 0x777777, //0x111111
+  floor: 0xEBEBEB, //White: 0xFFFFFF  Gray: 0xDBD9D9
+
+  presurePlateGreen: 0x137D1E,
+  presurePlateYellow: 0xA7B01A, 
+
+  doorGreen: 0x137D1E,
+  doorYellow: 0xA7B01A,
+};
+
+const ENTITY_COLOR = {
+  player: 0x1E90FF,  //F5B727
+  boxGreen: 0x27F53C,
+  boxYellow: 0xEBFF00, //0xF9FFA6
+};
+
+const levels = [
+
+	[ // 1st Level
+	 "##############################",
+	 "###########...+...############",
+	 "###########.......############",
+	 "###########...G...############",
+	 "###########.......############",
+	 "###########.......############",
+	 "###########...g...############",
+	 "###########.......############",
+	 "#############111##############",
+	 "#.................############",
+	 "#.................#..........#",
+	 "#............................#",
+	 "#..Y.........................#",
+	 "#.................#..........#",
+	 "###################..........#", //middle 30x30
+	 "#............................#", //middle 30x30
+	 "#............................#",
+	 "#............................#",
+	 "#..............y.............#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "########22####################",
+	 "########22####################",
+	 "#............................#",
+	 "#...........................==",
+	 "#...........................==",
+	 "#............................#",
+	 "##############################"],
+
+	[ // 2nd Level 
+	 "##############################",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#", //middle 30x30
+	 "#............................#", //middle 30x30
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "##############################"],
+	
+	[ // 3rd Level
+	 "##############################",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#", //middle 30x30
+	 "#............................#", //middle 30x30
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "#............................#",
+	 "##############################"],
+];
+
+// splits my strings into separate characters
+const parsedLevels = levels.map(
+	function (level) {
+		return level.map(function (row) {
+			return row.split("")
+		})
+	}
+);
+
+// Globals----------------------------------
+let mode = "menu";
 let levelIndex = 0;
+let levelMap = [];
 
-function loadNextLevel() {
-	levelIndex++;
+let playerX = 1, playerY = 1;
+let boxesGreen = [];
+let boxesYellow = [];
 
-	if (levelIndex >= levels.length) {
-		levelIndex = 0;
+let doorGreen = [];
+let doorYellow = [];
+
+
+// Main Menu Loader--------------------------------
+function loadMenu() {
+	mode = "menu";
+
+	drawMenu();
+}
+
+function drawMenu() {
+	PS.color(PS.ALL, PS.ALL, 0xEBEBEB); // Clear everything to white
+	PS.glyph(PS.ALL, PS.ALL, 0); // Clear all Text
+
+	PS.statusText("Press Num keys from 1-3 to load a level");
+
+	function textPrinter(x, y, text, glyphColor) {
+		for (let i = 0; i < text.length; i += 1) {
+		const textCursor = x + i;
+		PS.glyph(textCursor, y, text.charCodeAt(i));
+		PS.glyphColor(textCursor, y, glyphColor);
+		}
 	}
 
-	loadLevel(levelindex);
+	textPrinter(2, 2, "LEVEL SELECT", 0x000000);
+
+	textPrinter(1, 6, "1 = Level 1",   0x0000FF);	
+	textPrinter(1, 8, "2 = Level 2",  0x0000FF);
+	textPrinter(1,10, "3 = Level 3",	0x0000FF);
+
+	textPrinter(3, 13, "ESC = MENU", 0x555555);
+}
+
+// Level Loader--------------------------------
+function loadLevel(levelIndex) {
+	mode = "play";
+
+	PS.statusText("WASD to move. ESC for Main Menu.");
+  
+	doorGreen = [];
+	doorYellow = [];
+
+	levelMap = parsedLevels[levelIndex].map(
+		function (row) {
+			return row.slice();
+		});
+
+	boxesGreen = Array.from({ length: Height }, () => Array(Width).fill(false));
+	boxesYellow = Array.from({ length: Height }, () => Array(Width).fill(false));
+
+	for (let y = 0; y < Height; y += 1) {
+		for (let x = 0; x < Width; x += 1) {
+			const ch = levelMap[y][x];
+
+			if (ch === "1") doorGreen.push({ x, y });
+			if (ch === "2") doorYellow.push({ x, y });
+
+			if (ch === "+") {
+				playerX = x; playerY = y;
+				levelMap[y][x] = ".";
+			} else if (ch === "G") {
+				boxesGreen[y][x] = true;
+				levelMap[y][x] = ".";
+			} else if (ch === "Y") {
+				boxesYellow[y][x] = true;
+				levelMap[y][x] = ".";
+			}
+		}
+	}
+
+	updateDoors();
+	draw();
+}
+
+// Draw----------------------------------
+function draw() {
+	//PS.color(PS.ALL, PS.ALL, 0xCAF6FC); //Clear all to light Blue
+	PS.glyph(PS.ALL, PS.ALL, 0); // Clear all text
+
+  	for (let y = 0; y < Height; y += 1) {
+		for (let x = 0; x < Width; x += 1) {
+
+    		const ch = levelMap[y][x];
+			const tile = LEGEND[ch] || LEGEND["."];
+
+			const tileColor = TERRAIN_COLOR[tile.base] ?? TERRAIN_COLOR.floor;
+			PS.color(x, y, tileColor);
+			
+			if (boxesGreen[y][x]) PS.color(x, y, ENTITY_COLOR.boxGreen);
+      		if (boxesYellow[y][x]) PS.color(x, y, ENTITY_COLOR.boxYellow);
+		}
+	}
+	PS.color(playerX, playerY, ENTITY_COLOR.player);
+}
+
+//Helpers and stuff----------------------------------
+function playerMove(up, down, left, right) {
+	if (mode !== "play") return;
+
+	let dx = 0, dy = 0;
+	if (up) dy = -1;
+	else if (down) dy = 1;
+	else if (left) dx = -1;
+	else if (right) dx = 1;
+
+	const nx = playerX + dx;
+	const ny = playerY + dy;
+
+	if (isSolid(nx, ny)) return;
+
+	// If there's a box, try to push it
+	if (hasBox(nx, ny)) {
+		const bx = nx + dx;
+		const by = ny + dy;
+
+		if (isSolid(bx, by) || hasBox(bx, by)) return;
+
+		// move whichever box is there
+		if (boxesGreen[ny][nx]) { boxesGreen[ny][nx] = false; boxesGreen[by][bx] = true; }
+		else if (boxesYellow[ny][nx]) { boxesYellow[ny][nx] = false; boxesYellow[by][bx] = true; }
+	}
+
+	playerX = nx;
+	playerY = ny;
+
+	updateDoors();
+  	draw();
+	checkObjectiveAndAdvance();
+}
+
+function updateDoors() {
+	let greenPressed = false;
+	let yellowPressed = false;
+
+	// checkss if matching box sits on it:
+	for (let y = 0; y < Height; y += 1) {
+		for (let x = 0; x < Width; x += 1) {
+		if (levelMap[y][x] === "g" && boxesGreen[y][x]) greenPressed = true;
+		if (levelMap[y][x] === "y" && boxesYellow[y][x]) yellowPressed = true;
+		}
+	}
+
+  	// open/close correspondig  doors color:
+  	for (const d of doorGreen) levelMap[d.y][d.x] = greenPressed ? "." : "1";
+  	for (const d of doorYellow) levelMap[d.y][d.x] = yellowPressed ? "." : "2";
+}
+
+function checkObjectiveAndAdvance() {
+	if (levelMap[playerY][playerX] !== "=") return;
+
+	if (levelIndex >= levels.length - 1) {
+		loadMenu();
+		return;
+	}
+
+	loadLevel(levelIndex + 1);
+}
+
+function inBounds(x, y) {
+  	return x >= 0 && x < Width && y >= 0 && y < Height;
+}
+
+function isSolid(x, y) {
+	if (!inBounds(x, y)) {
+		return true;
+	} 
+
+  const tile = LEGEND[levelMap[y][x]] || LEGEND["#"];
+  	return tile.solid === true;
+}
+
+function hasBox(x, y) {
+  	return boxesGreen[y][x] || boxesYellow[y][x];
 }
 
 
-
-
-
+// PERLENSPIEL FUNCTIONs  -------------------------------------
 PS.init = function( system, options ) {
-	// Uncomment the following code line
-	// to verify operation:
-
 	// PS.debug( "PS.init() called\n" );
 
-	// This function should normally begin
-	// with a call to PS.gridSize( x, y )
-	// where x and y are the desired initial
-	// dimensions of the grid.
-	// Call PS.gridSize() FIRST to avoid problems!
-	// The sample call below sets the grid to the
-	// default dimensions (8 x 8).
-	// Uncomment the following code line and change
-	// the x and y parameters as needed.
+	PS.gridSize(Width, Height);
+	PS.border(PS.ALL, PS.ALL, 0); //Removes the grid
 
-	// PS.gridSize( 8, 8 );
-
-	// This is also a good place to display
-	// your game title or a welcome message
-	// in the status line above the grid.
-	// Uncomment the following code line and
-	// change the string parameter as needed.
-
-	// PS.statusText( "Game" );
-
-	// Add any other initialization code you need here.
+	loadMenu();
 };
 
 /*
@@ -203,11 +491,32 @@ This function doesn't have to do anything. Any value returned is ignored.
 */
 
 PS.keyDown = function( key, shift, ctrl, options ) {
-	// Uncomment the following code line to inspect first three parameters:
-
 	// PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
-	// Add code here for when a key is pressed.
+	if (mode === "menu") {
+		if (key == 49) {
+			loadLevel(0);
+		} else if (key == 50) {
+			loadLevel(1);
+		} else if (key == 51) {
+			loadLevel(2);
+		}
+
+	} else if (mode === "play") {
+		if (key == PS.KEY_ESCAPE) {
+			loadMenu();
+		}
+		if (key == 119) { // W key
+			playerMove(true, false, false, false);
+		} if (key == 115) { // S key
+			playerMove(false, true, false, false);
+		} if (key == 97) { // A key
+			playerMove(false, false, true, false);
+		} if (key == 100) { // D key
+			playerMove(false, false, false, true);
+		}
+	}
+
 };
 
 /*

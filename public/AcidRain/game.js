@@ -248,8 +248,6 @@ function tick() {
 	draw();
 }
 
-//------------------------------------------------------------------------------------
-
 
 //Perlenspiel Functions----------------------------------
 PS.init = function( system, options ) {
@@ -382,7 +380,6 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 
 	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
-	// "ESC" --> return to menu
 	if (key === PS.KEY_ESCAPE || key === 27) {
 		loadMenu();
 		return;
@@ -391,7 +388,7 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 	if (mode !== "menu") {
 		return;
 	} else if (key >= 49 && key <= 57) {
-		const index = key - 49; // '1'->0, '2'->1, etc.
+		const index = key - 49;
 		
 		if (index >= 0 && index < levels.length) {
 		loadLevel(index);

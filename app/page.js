@@ -10,13 +10,17 @@ export default function Home() {
         <br />
 
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0uPy7ZzOK3Tt5aO9MqScBhypqGNum9vHW4Axb8-KR_Dl0lA/viewform?usp=publish-editor">Dev 01: Playtest Survey</a>
-
         <br />
 
-        <a href="PuzzleGame/game.html">Dev 02: "Box puzzle game"</a>
+        <a href="PuzzleGame/game.html">Dev 04: "Box puzzle game"</a>
         <br />
 
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSeyv76_FXG4S9703pvVVnzDdo4i_lWusQ1VmqJq3g0wZ7wJ-g/viewform?usp=publish-editor">Dev 02: Playtest Survey</a>
+        <br />
+
+        <a href="RushHourMadness/game.html">Dev 07: "Rush Hour Madness"</a>
+        <br />
+
       </section>
     </main>
   );

@@ -18,7 +18,7 @@ export default function Home() {
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSeyv76_FXG4S9703pvVVnzDdo4i_lWusQ1VmqJq3g0wZ7wJ-g/viewform?usp=publish-editor">Dev 02: Playtest Survey</a>
         <br />
 
-        <a href="RushHourMadness/game.html">Dev 07: "Rush Hour Madness"</a>
+        <a>Dev 07: "Rush Hour Madness"</a>
         <br />
 
       </section>

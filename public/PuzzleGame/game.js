@@ -74,8 +74,8 @@ const TERRAIN_COLOR = {
   wall: 0x777777, //0x111111
   floor: 0xEBEBEB, //White: 0xFFFFFF  Gray: 0xDBD9D9
 
-  presurePlateGreen: 0x137D1E,
-  presurePlateYellow: 0xA7B01A, 
+  presurePlateGreen: 0x137D1E, 	// Old color: 0x137D1E,
+  presurePlateYellow: 0xA7B01A, // Old Color: 0xA7B01A, 
 
   doorGreen: 0x137D1E,
   doorYellow: 0xA7B01A,
@@ -83,8 +83,8 @@ const TERRAIN_COLOR = {
 
 const ENTITY_COLOR = {
   player: 0x1E90FF,  //F5B727
-  boxGreen: 0x27F53C,
-  boxYellow: 0xEBFF00, //0xF9FFA6
+  boxGreen: 0x137D1E, 	// Old color: 0x27F53C
+  boxYellow: 0xA7B01A, 			// Old Color: 0xEBFF00
 };
 
 const levels = [
@@ -96,35 +96,35 @@ const levels = [
 	 "###########...G...############",
 	 "###########.......############",
 	 "###########.......############",
-	 "###########...g...############",
 	 "###########.......############",
+	 "###########.....g.############",
 	 "############1111##############",
 	 "############1111##############",
 	 "#.................##.........#",
-	 "#............................#",
-	 "#..Y.........................#",
-	 "#............................#",
+	 "#.................11.........#",
+	 "#..Y..............11.........#",
+	 "#.................11.........#",
 	 "#.................##.........#",
 	 "####################.........#", //middle 30x30
 	 "####################.........#", //middle 30x30
 	 "#............................#",
 	 "#............................#",
-	 "###..........................#",
-	 "#y...........................#",
-	 "###..........................#",
+	 "#............................#",
+	 "#.........................y..#",
+	 "#............................#",
 	 "#............................#",
 	 "#######2222###################",
 	 "#######2222###################",
-	 "#............................#",
-	 "#...........................==",
-	 "#...........................==",
-	 "#............................#",
+	 "#...........................##",
+	 "#...........................2=",
+	 "#...........................2=",
+	 "#...........................##",
 	 "##############################"],
 
 	[ // 2nd Level 
 	 "##############################",
 	 "#...........................g#",
-	 "#..........................###",
+	 "#............................#",
 	 "#............................#",
 	 "#....+.......................#",
 	 "#............................#",
@@ -135,10 +135,10 @@ const levels = [
 	 "#.............##.............#",
 	 "#.............##.............#",
 	 "#.............##.............#",
+	 "#.....G.......##.............#",
 	 "#.............##.............#",
-	 "#........G....##.............#",
-	 "#.#...........##.............#",
-	 "#y#...........##.............#",
+	 "#.............##.............#",
+	 "#..........y..##.............#",
 	 "#####2222#######......Y......#",
 	 "#####2222#######.............#",
 	 "#.............##.............#",
@@ -146,10 +146,10 @@ const levels = [
 	 "#.............################",
 	 "#.............################",
 	 "#............................#",
-	 "#............................#",
-	 "#...........................==",
-	 "#...........................==",
-	 "#............................#",
+	 "#...........................##",
+	 "#...........................2=",
+	 "#...........................2=",
+	 "#...........................##",
 	 "#............................#",
 	 "##############################"],
 ];
@@ -185,9 +185,12 @@ function loadMenu() {
 
 function drawMenu() {
 	PS.color(PS.ALL, PS.ALL, 0xEBEBEB); // Clear everything to white
+	PS.bgColor(PS.ALL, PS.ALL, 0xEBEBEB);
+	PS.bgAlpha(PS.ALL, PS.ALL, 255);
+	PS.radius(PS.ALL, PS.ALL, 0);
 	PS.glyph(PS.ALL, PS.ALL, 0); // Clear all Text
 
-	PS.statusText("Press Num keys from 1-3 to load a level");
+	PS.statusText("Press Num keys from 1-2 to load a level");
 
 	function textPrinter(x, y, text, glyphColor) {
 		for (let i = 0; i < text.length; i += 1) {
@@ -207,15 +210,16 @@ function drawMenu() {
 }
 
 // Level Loader--------------------------------
-function loadLevel(levelIndex) {
+function loadLevel(index) {
+	levelIndex = index;
 	mode = "play";
 
-	PS.statusText("WASD to move. ESC for Main Menu.");
+	PS.statusText("WASD = move|ESC = Main Menu|R = Restart");
   
 	doorGreen = [];
 	doorYellow = [];
 
-	levelMap = parsedLevels[levelIndex].map(
+	levelMap = parsedLevels[index].map(
 		function (row) {
 			return row.slice();
 		});
@@ -259,13 +263,37 @@ function draw() {
 			const tile = LEGEND[ch] || LEGEND["."];
 
 			const tileColor = TERRAIN_COLOR[tile.base] ?? TERRAIN_COLOR.floor;
-			PS.color(x, y, tileColor);
+			//PS.color(x, y, tileColor);
+
+			PS.bgColor(x, y, tileColor);
+			PS.bgAlpha(x, y, 255);
+			PS.radius(x, y, 0);
+
+			if (ch === "g" || ch === "y") {
+				PS.color(x, y, TERRAIN_COLOR.floor);
+				PS.radius(x, y, 50);
+			}
+			else {
+				PS.color(x, y, tileColor);
+			}
 			
-			if (boxesGreen[y][x]) PS.color(x, y, ENTITY_COLOR.boxGreen);
-      		if (boxesYellow[y][x]) PS.color(x, y, ENTITY_COLOR.boxYellow);
+			//if (boxesGreen[y][x]) PS.color(x, y, ENTITY_COLOR.boxGreen);
+      		//if (boxesYellow[y][x]) PS.color(x, y, ENTITY_COLOR.boxYellow);
+
+			if (boxesGreen[y][x]) {
+				//PS.glyph(x, y, "●"); //■
+				PS.color(x, y, ENTITY_COLOR.boxGreen);
+				PS.radius(x, y, 50);
+			}
+			if (boxesYellow[y][x]) {
+				//PS.glyph(x, y, "●");
+				PS.color(x, y, ENTITY_COLOR.boxYellow);
+				PS.radius(x, y, 50);
+			}
 		}
 	}
 	PS.color(playerX, playerY, ENTITY_COLOR.player);
+	PS.radius(playerX, playerY, 0);
 }
 
 //Helpers and stuff----------------------------------
@@ -473,7 +501,12 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 	} else if (mode === "play") {
 		if (key == PS.KEY_ESCAPE) {
 			loadMenu();
+		} 
+		
+		if (key == 114 || key == 82) {
+			loadLevel(levelIndex);
 		}
+
 		if (key == 119) { // W key
 			playerMove(true, false, false, false);
 		} if (key == 115) { // S key

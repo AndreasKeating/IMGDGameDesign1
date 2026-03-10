@@ -8,17 +8,23 @@ export default function Home() {
 
         <a href="AcidRain/game.html">Dev 01: Acid Rain</a>
         <br />
-
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0uPy7ZzOK3Tt5aO9MqScBhypqGNum9vHW4Axb8-KR_Dl0lA/viewform?usp=publish-editor">Dev 01: Playtest Survey</a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0uPy7ZzOK3Tt5aO9MqScBhypqGNum9vHW4Axb8-KR_Dl0lA/viewform?usp=publish-editor">     - Dev 02: Playtest Survey</a>
         <br />
 
-        <a href="PuzzleGame/game.html">Dev 04: "Box puzzle game"</a>
+        <a></a>
         <br />
 
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeyv76_FXG4S9703pvVVnzDdo4i_lWusQ1VmqJq3g0wZ7wJ-g/viewform?usp=publish-editor">Dev 02: Playtest Survey</a>
+        <a href="PuzzleGame/game.html">Dev 04: "Puzzle game"</a>
+        <br />
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeyv76_FXG4S9703pvVVnzDdo4i_lWusQ1VmqJq3g0wZ7wJ-g/viewform?usp=publish-editor">     - Dev 03: Playtest Survey</a>
         <br />
 
-        <a>Dev 07: "Rush Hour Madness"</a>
+        <a></a>
+        <br />
+
+        <a>Dev 07: "Bullet Barrage"</a>
+        <br />
+        <a>     - Dev 08: Playtest Survey</a>
         <br />
 
       </section>

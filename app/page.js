@@ -16,7 +16,7 @@ export default function Home() {
 
         <a href="PuzzleGame/game.html">Dev 04: "Puzzle game"</a>
         <br />
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeyv76_FXG4S9703pvVVnzDdo4i_lWusQ1VmqJq3g0wZ7wJ-g/viewform?usp=publish-editor">     - Dev 03: Playtest Survey</a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeyv76_FXG4S9703pvVVnzDdo4i_lWusQ1VmqJq3g0wZ7wJ-g/viewform?usp=publish-editor">     - Dev 05: Playtest Survey</a>
         <br />
 
         <a></a>
@@ -24,7 +24,7 @@ export default function Home() {
 
         <a href="BulletBarrage/game.html">Dev 07: "Bullet Barrage"</a>
         <br />
-        <a>     - Dev 08: Playtest Survey</a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSeTnJo7qKdsDl0VKAnu5j2lRgO3rUN7JYxSBO49BPtrQJg6ZA/viewform?usp=publish-editor">     - Dev 08: Playtest Survey</a>
         <br />
 
       </section>

@@ -59,6 +59,7 @@ const COLORS = {
 
 	player: 0x1E90FF,
 	bullet: 0xF2F2F2,
+	shield: 0x66CCFF,
 
 	invader: 0x19E354, // Old Color: 0xFF5050,
 	enemyBullet: 0xFF5050,
@@ -84,8 +85,13 @@ const SHOT_COOLDOWN_TICKS = 4;
 const BULLET_LIMIT = 10;
 
 // Enemy shooting info--------------------------------
-const ENEMY_SHOT_CHANCE = 25;
-const ENEMY_BULLET_LIMIT = 6;
+const ENEMY_SHOT_CHANCE = 3;
+const ENEMY_BULLET_LIMIT = 25;
+const ENEMY_SHOTS_PER_TICK = 2; 
+
+// Shield info--------------------------------
+const SHIELD_GLYPH = 0x23E4;
+const SHIELD_Y = PLAYER_Y - 1;
 
 // Timing Info--------------------------------
 const TICK_RATE = 6;        // timer ticks/sec-ish
@@ -101,6 +107,7 @@ let shotCooldown = 0;
 // Player
 let playerX = Math.floor(Width / 2);
 let bullets = []; // {x, y}
+let shieldActive = false;
 
 // Invaders
 let invaders = []; // {x, y, alive}
@@ -111,6 +118,7 @@ let enemyBullets = []; // {x, y}
 // Main Menu Loader--------------------------------
 function loadMenu() {
 	mode = "menu";
+	shieldActive = false;
 	stopTimer();
 	drawMenu();
 }
@@ -144,6 +152,10 @@ function drawMenu() {
 	PS.glyph(13, 20, 0x25B6); PS.glyphColor(13, 20, COLORS.text); // ▶
 	textPrinter(15, 20, "SPACE", COLORS.text);
 
+	// Title art (player with shield)
+	//PS.glyph(15, 8, 0x23E4); // ⬣ (swap this code to try others)
+	//PS.glyphColor(15, 8, COLORS.player);
+
 	PS.statusText("Bullet Barrage");
 }
 
@@ -157,6 +169,7 @@ function loadGame() {
 	playerX = Math.floor(Width / 2);
 	bullets = [];
 	shotCooldown = 0;
+	shieldActive = false;
 
 	// build invaders
 	invaders = [];
@@ -211,8 +224,19 @@ function draw() {
 		PS.glyphColor(b.x, b.y, COLORS.bullet);
 	}
 
+	// Shield
+	if (shieldActive) {
+		for (let sx = playerX - 1; sx <= playerX + 1; sx += 1) {
+			if (sx < 0 || sx >= Width) continue;
+			PS.color(sx, SHIELD_Y, COLORS.bg);
+			PS.glyph(sx, SHIELD_Y, SHIELD_GLYPH);
+			PS.glyphColor(sx, SHIELD_Y, COLORS.shield);
+		}
+	}
+
 	// Player
 	PS.color(playerX, PLAYER_Y, COLORS.player);
+	PS.radius(playerX, PLAYER_Y, 50); // circle
 
 	PS.statusText("Invaders");
 }
@@ -335,34 +359,62 @@ function moveEnemyBulletsAndCollide() {
 			continue;
 		}
 
-		// hit player
-		if (b.x === playerX && b.y === PLAYER_Y) {
+		// hit shield
+		if (shieldActive && b.y === SHIELD_Y && Math.abs(b.x - playerX) <= 1) {
 			enemyBullets.splice(i, 1);
-			endGame(false);
-			return;
+			PS.audioPlay("fx_boop", { volume: 0.15 });
+			continue;
+		}
+
+		// hit player
+		if (b.y === PLAYER_Y) {
+			// If shield is up and bullet is within the shield's 3-wide coverage, block it.
+			if (shieldActive && Math.abs(b.x - playerX) <= 1) {
+				enemyBullets.splice(i, 1);
+				PS.audioPlay("fx_boop", { volume: 0.15 });
+				continue;
+			}
+			// Otherwise, only lose if it hits the player center.
+			if (b.x === playerX) {
+				enemyBullets.splice(i, 1);
+				endGame(false);
+				return;
+			}
 		}
 	}
 }
 
 function enemyShooting() {
-	if (enemyBullets.length >= ENEMY_BULLET_LIMIT) return;
-
-	if (PS.random(ENEMY_SHOT_CHANCE) !== 1) return;
-
-	// Collect alive invaders
+	// Collect alive invaders once
 	const alive = [];
 	for (const inv of invaders) {
 		if (inv.alive) alive.push(inv);
 	}
 	if (alive.length === 0) return;
 
-	// Pick an random invader (alive)
-	const shooter = alive[PS.random(alive.length) - 1];
+	let fired = false;
 
-	// Spawn bullet below enemy
-	enemyBullets.push({ x: shooter.x, y: shooter.y + 1 });
+	// Attempt multiple shots per tick
+	for (let s = 0; s < ENEMY_SHOTS_PER_TICK; s += 1) {
+		if (enemyBullets.length >= ENEMY_BULLET_LIMIT) break;
 
-	PS.audioPlay("fx_click", { volume: 0.12 });
+		// chance gate
+		if (PS.random(ENEMY_SHOT_CHANCE) !== 1) continue;
+
+		// pick a random alive invader
+		const shooter = alive[PS.random(alive.length) - 1];
+
+		// spawn bullet below enemy
+		enemyBullets.push({ x: shooter.x, y: shooter.y + 1 });
+		fired = true;
+	}
+
+	// Play at most ONE sound per tick (so it doesn't spam audio)
+	if (fired) {
+		PS.audioPlay("fx_bang", { volume: 0.08 });
+		// If you prefer the same sound as player, use:
+		// PS.audioPlay("fx_click", { volume: 0.05 });
+	}
 }
 
 function gameTick() {
@@ -375,6 +427,8 @@ function gameTick() {
 	moveBulletsAndCollide();
 	enemyShooting();
 	moveEnemyBulletsAndCollide();
+
+	if (mode !== "play") return;
 
 	// invaders update slower
 	if (tickCount % INV_MOVE_EVERY === 0) {
@@ -398,6 +452,7 @@ function gameTick() {
 }
 
 function endGame(won) {
+	draw();
 	stopTimer();
 	mode = won ? "win" : "lose";
 
@@ -426,6 +481,7 @@ function playerMove(left, right) {
 
 function playerShoot() {
 	if (mode !== "play") return;
+	if (shieldActive) return;
 	if (bullets.length >= BULLET_LIMIT) return;  //limiting the bullets to prevent spamming
 	if (shotCooldown > 0) return;
 
@@ -579,6 +635,10 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 		if (key === 100 || key === 68 || key === PS.KEY_ARROW_RIGHT) { // D or Right arrow
 			playerMove(false, true);
 		}
+		if (key === 119 || key === 87 || key === PS.KEY_ARROW_UP) { // w/W or Up Arrow
+			shieldActive = true;
+			draw();
+		}
 
 		// Space to shoot
 		if (key === 32) {
@@ -599,11 +659,13 @@ This function doesn't have to do anything. Any value returned is ignored.
 */
 
 PS.keyUp = function( key, shift, ctrl, options ) {
-	// Uncomment the following code line to inspect first three parameters:
+	if (mode !== "play") return;
 
-	// PS.debug( "PS.keyUp(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
-
-	// Add code here for when a key is released.
+	// release W / Up Arrow = shield off
+	if (key === 119 || key === 87 || key === PS.KEY_ARROW_UP) {
+		shieldActive = false;
+		draw();
+	}
 };
 
 /*

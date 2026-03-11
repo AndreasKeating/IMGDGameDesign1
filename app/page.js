@@ -22,7 +22,7 @@ export default function Home() {
         <a></a>
         <br />
 
-        <a>Dev 07: "Bullet Barrage"</a>
+        <a href="BulletBarrage/game.html">Dev 07: "Bullet Barrage"</a>
         <br />
         <a>     - Dev 08: Playtest Survey</a>
         <br />

@@ -48,333 +48,392 @@ Any value returned is ignored.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
 
+// Grid Size--------------------------------
 const Height = 30, Width = 30;
 
-//Levels Info--------------------------------
-const LEGEND = {
-	"#": {base: "wall", 		solid: true},
-	".": {base: "floor", 		solid: false},
-	"=": {base: "objective", 	solid: false, 	objective: true},
+// Game Info--------------------------------
+// (Later you can swap colors for glyphs/sprites to match your metaphor.)
+const COLORS = {
+	bg: 0x111111,
+	hud: 0x2A2A2A,
 
-	"g": {base: "presurePlateGreen", 	solid: false},
-	"y": {base: "presurePlateYellow", 	solid: false},
+	player: 0x1E90FF,
+	bullet: 0xF2F2F2,
 
-	"1": {base: "doorGreen", 	solid: true},
-	"2": {base: "doorYellow", 	solid: true},
+	invader: 0x19E354, // Old Color: 0xFF5050,
+	enemyBullet: 0xFF5050,
 
-	//Spawns
-	"+": {base: "floor", 	spawn: "player"},
-	"G": {base: "floor", 	spawn: "boxGreen"},
-	"Y": {base: "floor", 	spawn: "boxYellow"},
-
-	//I'll add more if I need...
-}
-
-const TERRAIN_COLOR = {
-  wall: 0x777777, //0x111111
-  floor: 0xEBEBEB, //White: 0xFFFFFF  Gray: 0xDBD9D9
-
-  presurePlateGreen: 0x137D1E, 	// Old color: 0x137D1E,
-  presurePlateYellow: 0xA7B01A, // Old Color: 0xA7B01A, 
-
-  doorGreen: 0x137D1E,
-  doorYellow: 0xA7B01A,
+	text: 0xFFFFFF,
+	textDim: 0xAAAAAA,
 };
 
-const ENTITY_COLOR = {
-  player: 0x1E90FF,  //F5B727
-  boxGreen: 0x137D1E, 	// Old color: 0x27F53C
-  boxYellow: 0xA7B01A, 			// Old Color: 0xEBFF00
-};
+// Formation Info--------------------------------
+const INV_ROWS = 4;
+const INV_COLS = 10;
+const INV_SPACING_X = 2;
+const INV_SPACING_Y = 2;
+const INV_START_X = 5;
+const INV_START_Y = 4;
 
-const levels = [
+const HUD_Y = 0;
+const TOP_MARGIN = 2;
+const PLAYER_Y = Height - 2;
 
-	[ // 1st Level
-	 "##############################",
-	 "###########...+...############",
-	 "###########.......############",
-	 "###########...G...############",
-	 "###########.......############",
-	 "###########.......############",
-	 "###########.......############",
-	 "###########.....g.############",
-	 "############1111##############",
-	 "############1111##############",
-	 "#.................##.........#",
-	 "#.................11.........#",
-	 "#..Y..............11.........#",
-	 "#.................11.........#",
-	 "#.................##.........#",
-	 "####################.........#", //middle 30x30
-	 "####################.........#", //middle 30x30
-	 "#............................#",
-	 "#............................#",
-	 "#............................#",
-	 "#.........................y..#",
-	 "#............................#",
-	 "#............................#",
-	 "#######2222###################",
-	 "#######2222###################",
-	 "#...........................##",
-	 "#...........................2=",
-	 "#...........................2=",
-	 "#...........................##",
-	 "##############################"],
+// Shooting info--------------------------------
+const SHOT_COOLDOWN_TICKS = 4;
+const BULLET_LIMIT = 10;
 
-	[ // 2nd Level 
-	 "##############################",
-	 "#...........................g#",
-	 "#............................#",
-	 "#............................#",
-	 "#....+.......................#",
-	 "#............................#",
-	 "#............................#",
-	 "#............................#",
-	 "######...###########1111######",
-	 "######...###########1111######",
-	 "#.............##.............#",
-	 "#.............##.............#",
-	 "#.............##.............#",
-	 "#.....G.......##.............#",
-	 "#.............##.............#",
-	 "#.............##.............#",
-	 "#..........y..##.............#",
-	 "#####2222#######......Y......#",
-	 "#####2222#######.............#",
-	 "#.............##.............#",
-	 "#.............##.............#",
-	 "#.............################",
-	 "#.............################",
-	 "#............................#",
-	 "#...........................##",
-	 "#...........................2=",
-	 "#...........................2=",
-	 "#...........................##",
-	 "#............................#",
-	 "##############################"],
-];
+// Enemy shooting info--------------------------------
+const ENEMY_SHOT_CHANCE = 25;
+const ENEMY_BULLET_LIMIT = 6;
 
-// splits my strings into separate characters
-const parsedLevels = levels.map(
-	function (level) {
-		return level.map(function (row) {
-			return row.split("")
-		})
-	}
-);
+// Timing Info--------------------------------
+const TICK_RATE = 6;        // timer ticks/sec-ish
+const INV_MOVE_EVERY = 3;   // invaders move every N ticks (lower = faster)
+const INV_DROP = 1;         // drop when hitting wall
 
 // Globals----------------------------------
-let mode = "menu";
-let levelIndex = 0;
-let levelMap = [];
+let mode = "menu"; // menu | play | win | lose
+let timerId = null;
+let tickCount = 0;
+let shotCooldown = 0;
 
-let playerX = 1, playerY = 1;
-let boxesGreen = [];
-let boxesYellow = [];
+// Player
+let playerX = Math.floor(Width / 2);
+let bullets = []; // {x, y}
 
-let doorGreen = [];
-let doorYellow = [];
+// Invaders
+let invaders = []; // {x, y, alive}
+let invDir = 1;    // 1 right AND -1 left
+let enemyBullets = []; // {x, y}
 
 
 // Main Menu Loader--------------------------------
 function loadMenu() {
 	mode = "menu";
-
+	stopTimer();
 	drawMenu();
 }
 
 function drawMenu() {
-	PS.color(PS.ALL, PS.ALL, 0xEBEBEB); // Clear everything to white
-	PS.bgColor(PS.ALL, PS.ALL, 0xEBEBEB);
+	// Clear
+	PS.color(PS.ALL, PS.ALL, COLORS.bg);
+	PS.bgColor(PS.ALL, PS.ALL, COLORS.bg);
 	PS.bgAlpha(PS.ALL, PS.ALL, 255);
 	PS.radius(PS.ALL, PS.ALL, 0);
-	PS.glyph(PS.ALL, PS.ALL, 0); // Clear all Text
+	PS.glyph(PS.ALL, PS.ALL, 0);
 
-	PS.statusText("Press Num keys from 1-2 to load a level");
+	// Title bead art (simple little "invader" stripe)
+	for (let x = 8; x <= 21; x += 1) PS.color(x, 10, 0x222222);
+	PS.color(10, 10, COLORS.invader);
+	PS.color(11, 10, COLORS.invader);
+	PS.color(13, 10, COLORS.invader);
+	PS.color(14, 10, COLORS.invader);
+	PS.color(16, 10, COLORS.invader);
+	PS.color(17, 10, COLORS.invader);
+	PS.color(19, 10, COLORS.invader);
+	PS.color(20, 10, COLORS.invader);
 
-	function textPrinter(x, y, text, glyphColor) {
-		for (let i = 0; i < text.length; i += 1) {
-		const textCursor = x + i;
-		PS.glyph(textCursor, y, text.charCodeAt(i));
-		PS.glyphColor(textCursor, y, glyphColor);
-		}
-	}
+	// Text
+	textPrinter(8, 6, "Bullet Barrage", COLORS.text);
+	textPrinter(8, 16, "PRESS ANY KEY", COLORS.textDim);
+	textPrinter(8, 17, "TO START GAME", COLORS.textDim);
 
-	textPrinter(2, 2, "LEVEL SELECT", 0x000000);
+	// Control Icons: ◀ ▶ + "SPACE"
+	PS.glyph(11, 20, 0x25C0); PS.glyphColor(11, 20, COLORS.text); // ◀
+	PS.glyph(13, 20, 0x25B6); PS.glyphColor(13, 20, COLORS.text); // ▶
+	textPrinter(15, 20, "SPACE", COLORS.text);
 
-	textPrinter(1, 6, "1 = Level 1",   0x0000FF);	
-	textPrinter(1, 8, "2 = Level 2",  0x0000FF);
-	//textPrinter(1,10, "3 = Level 3",	0x0000FF);
-
-	textPrinter(3, 13, "ESC = MENU", 0x555555);
+	PS.statusText("Bullet Barrage");
 }
 
-// Level Loader--------------------------------
-function loadLevel(index) {
-	levelIndex = index;
+
+// Game Loader--------------------------------
+function loadGame() {
 	mode = "play";
+	clearGrid();
 
-	PS.statusText("WASD = move|ESC = Main Menu|R = Restart");
-  
-	doorGreen = [];
-	doorYellow = [];
+	tickCount = 0;
+	playerX = Math.floor(Width / 2);
+	bullets = [];
+	shotCooldown = 0;
 
-	levelMap = parsedLevels[index].map(
-		function (row) {
-			return row.slice();
-		});
+	// build invaders
+	invaders = [];
+	invDir = 1;
+	enemyBullets = [];
 
-	boxesGreen = Array.from({ length: Height }, () => Array(Width).fill(false));
-	boxesYellow = Array.from({ length: Height }, () => Array(Width).fill(false));
-
-	for (let y = 0; y < Height; y += 1) {
-		for (let x = 0; x < Width; x += 1) {
-			const ch = levelMap[y][x];
-
-			if (ch === "1") doorGreen.push({ x, y });
-			if (ch === "2") doorYellow.push({ x, y });
-
-			if (ch === "+") {
-				playerX = x; playerY = y;
-				levelMap[y][x] = ".";
-			} else if (ch === "G") {
-				boxesGreen[y][x] = true;
-				levelMap[y][x] = ".";
-			} else if (ch === "Y") {
-				boxesYellow[y][x] = true;
-				levelMap[y][x] = ".";
-			}
+	for (let r = 0; r < INV_ROWS; r += 1) {
+		for (let c = 0; c < INV_COLS; c += 1) {
+			invaders.push({
+				x: INV_START_X + c * INV_SPACING_X,
+				y: INV_START_Y + r * INV_SPACING_Y,
+				alive: true
+			});
 		}
 	}
 
-	updateDoors();
+	startTimer();
 	draw();
 }
 
+
 // Draw----------------------------------
 function draw() {
-	//PS.color(PS.ALL, PS.ALL, 0xCAF6FC); //Clear all to light Blue
-	PS.glyph(PS.ALL, PS.ALL, 0); // Clear all text
+	// Background
+	PS.color(PS.ALL, PS.ALL, COLORS.bg);
+	PS.glyph(PS.ALL, PS.ALL, 0);
+	PS.radius(PS.ALL, PS.ALL, 0);
 
-  	for (let y = 0; y < Height; y += 1) {
-		for (let x = 0; x < Width; x += 1) {
+	// HUD row
+	for (let x = 0; x < Width; x += 1) {
+		PS.color(x, HUD_Y, COLORS.hud);
+	}
 
-    		const ch = levelMap[y][x];
-			const tile = LEGEND[ch] || LEGEND["."];
+	// Invaders
+	for (const inv of invaders) {
+		if (inv.alive) {
+			PS.color(inv.x, inv.y, COLORS.invader);
+		}
+	}
 
-			const tileColor = TERRAIN_COLOR[tile.base] ?? TERRAIN_COLOR.floor;
-			//PS.color(x, y, tileColor);
+	// Enemy Bullets
+	for (const eb of enemyBullets) {
+		PS.color(eb.x, eb.y, COLORS.bg); // keep the background
+		PS.glyph(eb.x, eb.y, 0x25BC);     // ▼  (note: 0x035E)
+		PS.glyphColor(eb.x, eb.y, COLORS.enemyBullet);
+	}
 
-			PS.bgColor(x, y, tileColor);
-			PS.bgAlpha(x, y, 255);
-			PS.radius(x, y, 0);
+	// Bullets
+	for (const b of bullets) { //if (bullet) {PS.color(bullet.x, bullet.y, COLORS.bullet);}
+		PS.color(b.x, b.y, COLORS.bg); // keeps background
+		PS.glyph(b.x, b.y, 0x25B2);    // ▲  (note: 0x23E4)
+		PS.glyphColor(b.x, b.y, COLORS.bullet);
+	}
 
-			if (ch === "g" || ch === "y") {
-				PS.color(x, y, TERRAIN_COLOR.floor);
-				PS.radius(x, y, 50);
-			}
-			else {
-				PS.color(x, y, tileColor);
-			}
-			
-			//if (boxesGreen[y][x]) PS.color(x, y, ENTITY_COLOR.boxGreen);
-      		//if (boxesYellow[y][x]) PS.color(x, y, ENTITY_COLOR.boxYellow);
+	// Player
+	PS.color(playerX, PLAYER_Y, COLORS.player);
 
-			if (boxesGreen[y][x]) {
-				//PS.glyph(x, y, "●"); //■
-				PS.color(x, y, ENTITY_COLOR.boxGreen);
-				PS.radius(x, y, 50);
-			}
-			if (boxesYellow[y][x]) {
-				//PS.glyph(x, y, "●");
-				PS.color(x, y, ENTITY_COLOR.boxYellow);
-				PS.radius(x, y, 50);
+	PS.statusText("Invaders");
+}
+
+
+// Helpers and stuff.. ----------------------------------
+function textPrinter(x, y, text, glyphColor) {
+	for (let i = 0; i < text.length; i += 1) {
+		const cx = x + i;
+		if (cx >= 0 && cx < Width) {
+			PS.glyph(cx, y, text.charCodeAt(i));
+			PS.glyphColor(cx, y, glyphColor);
+		}
+	}
+}
+
+function clearGrid() {
+	PS.color(PS.ALL, PS.ALL, COLORS.bg);
+	PS.bgColor(PS.ALL, PS.ALL, COLORS.bg);
+	PS.bgAlpha(PS.ALL, PS.ALL, 255);
+	PS.radius(PS.ALL, PS.ALL, 0);
+	PS.glyph(PS.ALL, PS.ALL, 0);
+	PS.border(PS.ALL, PS.ALL, 0);
+}
+
+function stopTimer() {
+	if (timerId !== null) {
+		PS.timerStop(timerId);
+		timerId = null;
+	}
+}
+
+function startTimer() {
+	stopTimer();
+	timerId = PS.timerStart(TICK_RATE, gameTick);
+}
+
+function aliveInvadersCount() {
+	let n = 0;
+	for (const inv of invaders) {
+		if (inv.alive) n += 1;
+	}
+	return n;
+}
+
+function invadersEdgeHit(nextDx) {
+	for (const inv of invaders) {
+		if (!inv.alive) continue;
+		const nx = inv.x + nextDx;
+		if (nx <= 0 || nx >= Width - 1) return true;
+	}
+	return false;
+}
+
+function invadersReachedPlayer() {
+	for (const inv of invaders) {
+		if (!inv.alive) continue;
+		if (inv.y >= PLAYER_Y) return true;
+	}
+	return false;
+}
+
+function moveInvaders() {
+	const dx = invDir;
+
+	if (invadersEdgeHit(dx)) {
+		// drop and reverse
+		for (const inv of invaders) {
+			if (inv.alive) inv.y += INV_DROP;
+		}
+		invDir *= -1;
+	} else {
+		// normal sweep
+		for (const inv of invaders) {
+			if (inv.alive) inv.x += dx;
+		}
+	}
+}
+
+function moveBulletsAndCollide() {
+	if (bullets.length === 0) return;
+
+	// loop backwards so we can safely remove bullets
+	for (let i = bullets.length - 1; i >= 0; i -= 1) {
+		const b = bullets[i];
+
+		b.y -= 1; // move up
+
+		// offscreen
+		if (b.y <= TOP_MARGIN - 1) {
+			bullets.splice(i, 1);
+			continue;
+		}
+
+		// collision with invader
+		for (const inv of invaders) {
+			if (!inv.alive) continue;
+
+			if (inv.x === b.x && inv.y === b.y) {
+				inv.alive = false;
+				bullets.splice(i, 1);
+				PS.audioPlay("fx_scratch", { volume: 0.2 });
+				break; // bullet removed stop checking this bullet 
 			}
 		}
 	}
-	PS.color(playerX, playerY, ENTITY_COLOR.player);
-	PS.radius(playerX, playerY, 0);
 }
 
-//Helpers and stuff----------------------------------
-function playerMove(up, down, left, right) {
+function moveEnemyBulletsAndCollide() {
+	if (enemyBullets.length === 0) return;
+
+	for (let i = enemyBullets.length - 1; i >= 0; i -= 1) {
+		const b = enemyBullets[i];
+
+		b.y += 1; // move down
+
+		// offscreen
+		if (b.y >= Height) {
+			enemyBullets.splice(i, 1);
+			continue;
+		}
+
+		// hit player
+		if (b.x === playerX && b.y === PLAYER_Y) {
+			enemyBullets.splice(i, 1);
+			endGame(false);
+			return;
+		}
+	}
+}
+
+function enemyShooting() {
+	if (enemyBullets.length >= ENEMY_BULLET_LIMIT) return;
+
+	if (PS.random(ENEMY_SHOT_CHANCE) !== 1) return;
+
+	// Collect alive invaders
+	const alive = [];
+	for (const inv of invaders) {
+		if (inv.alive) alive.push(inv);
+	}
+	if (alive.length === 0) return;
+
+	// Pick an random invader (alive)
+	const shooter = alive[PS.random(alive.length) - 1];
+
+	// Spawn bullet below enemy
+	enemyBullets.push({ x: shooter.x, y: shooter.y + 1 });
+
+	PS.audioPlay("fx_click", { volume: 0.12 });
+}
+
+function gameTick() {
 	if (mode !== "play") return;
 
-	let dx = 0, dy = 0;
-	if (up) dy = -1;
-	else if (down) dy = 1;
-	else if (left) dx = -1;
-	else if (right) dx = 1;
+	tickCount += 1;
+	if (shotCooldown > 0) shotCooldown -= 1;
 
-	const nx = playerX + dx;
-	const ny = playerY + dy;
+	// bullets updates every tick
+	moveBulletsAndCollide();
+	enemyShooting();
+	moveEnemyBulletsAndCollide();
 
-	if (isSolid(nx, ny)) return;
+	// invaders update slower
+	if (tickCount % INV_MOVE_EVERY === 0) {
+		moveInvaders();
 
-	// If there's a box, try to push it
-	if (hasBox(nx, ny)) {
-		const bx = nx + dx;
-		const by = ny + dy;
-
-		if (isSolid(bx, by) || hasBox(bx, by)) return;
-
-		// move whichever box is there
-		if (boxesGreen[ny][nx]) { boxesGreen[ny][nx] = false; boxesGreen[by][bx] = true; }
-		else if (boxesYellow[ny][nx]) { boxesYellow[ny][nx] = false; boxesYellow[by][bx] = true; }
-	}
-
-	playerX = nx;
-	playerY = ny;
-
-	updateDoors();
-  	draw();
-	checkObjectiveAndAdvance();
-}
-
-function updateDoors() {
-	let greenPressed = false;
-	let yellowPressed = false;
-
-	// checkss if matching box sits on it:
-	for (let y = 0; y < Height; y += 1) {
-		for (let x = 0; x < Width; x += 1) {
-		if (levelMap[y][x] === "g" && boxesGreen[y][x]) greenPressed = true;
-		if (levelMap[y][x] === "y" && boxesYellow[y][x]) yellowPressed = true;
+		if (invadersReachedPlayer()) {
+			draw();
+			endGame(false);
+			return;
 		}
 	}
 
-  	// open/close correspondig  doors color:
-  	for (const d of doorGreen) levelMap[d.y][d.x] = greenPressed ? "." : "1";
-  	for (const d of doorYellow) levelMap[d.y][d.x] = yellowPressed ? "." : "2";
-}
-
-function checkObjectiveAndAdvance() {
-	if (levelMap[playerY][playerX] !== "=") return;
-
-	if (levelIndex >= levels.length - 1) {
-		loadMenu();
+	// win
+	if (aliveInvadersCount() === 0) {
+		draw();
+		endGame(true);
 		return;
 	}
 
-	loadLevel(levelIndex + 1);
+	draw();
 }
 
-function inBounds(x, y) {
-  	return x >= 0 && x < Width && y >= 0 && y < Height;
+function endGame(won) {
+	stopTimer();
+	mode = won ? "win" : "lose";
+
+	// Overlay message (still self-contained on grid)
+	const msg = won ? "YOU WIN" : "YOU LOSE";
+	textPrinter(11, 14, msg, COLORS.text);
+	textPrinter(10, 16, "R = RESTART", COLORS.textDim);
+	textPrinter(10, 18, "ESC = MENU", COLORS.textDim);
+
+	PS.statusText(won ? "Cleared!" : "Overrun!");
 }
 
-function isSolid(x, y) {
-	if (!inBounds(x, y)) {
-		return true;
-	} 
+function playerMove(left, right) {
+	if (mode !== "play") return;
 
-  const tile = LEGEND[levelMap[y][x]] || LEGEND["#"];
-  	return tile.solid === true;
+	let dx = 0;
+	if (left) dx = -1;
+	else if (right) dx = 1;
+
+	const nx = playerX + dx;
+	if (nx < 1 || nx > Width - 2) return;
+
+	playerX = nx;
+	draw();
 }
 
-function hasBox(x, y) {
-  	return boxesGreen[y][x] || boxesYellow[y][x];
+function playerShoot() {
+	if (mode !== "play") return;
+	if (bullets.length >= BULLET_LIMIT) return;  //limiting the bullets to prevent spamming
+	if (shotCooldown > 0) return;
+
+	bullets.push({ x: playerX, y: PLAYER_Y - 1 });
+	shotCooldown = SHOT_COOLDOWN_TICKS;
+	PS.audioPlay("fx_click", { volume: 0.2 });
 }
+
 
 
 // PERLENSPIEL FUNCTIONs  -------------------------------------
@@ -382,7 +441,10 @@ PS.init = function( system, options ) {
 	// PS.debug( "PS.init() called\n" );
 
 	PS.gridSize(Width, Height);
-	PS.border(PS.ALL, PS.ALL, 0); //Removes the grid
+	PS.border(PS.ALL, PS.ALL, 0);
+
+	PS.audioLoad("fx_scratch");
+	PS.audioLoad("fx_click");
 
 	loadMenu();
 };
@@ -490,31 +552,37 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 	// PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
 	if (mode === "menu") {
-		if (key == 49) {
-			loadLevel(0);
-		} else if (key == 50) {
-			loadLevel(1);
-		} //else if (key == 51) {
-			//loadLevel(2);
-		//}
+		// any key starts
+		loadGame();
+		return;
+	}
 
-	} else if (mode === "play") {
-		if (key == PS.KEY_ESCAPE) {
-			loadMenu();
-		} 
-		
-		if (key == 114 || key == 82) {
-			loadLevel(levelIndex);
+	// ESC always returns to menu
+	if (key === PS.KEY_ESCAPE) {
+		loadMenu();
+		return;
+	}
+
+	if (mode === "win" || mode === "lose") {
+		// R restart
+		if (key === 114 || key === 82) {
+			loadGame();
+		}
+		return;
+	}
+
+	if (mode === "play") {
+		// A/D keys for movement (and arrow Keys)
+		if (key === 97 || key === 65 || key === PS.KEY_ARROW_LEFT) { // A or Left Arrow
+			playerMove(true, false);
+		}
+		if (key === 100 || key === 68 || key === PS.KEY_ARROW_RIGHT) { // D or Right arrow
+			playerMove(false, true);
 		}
 
-		if (key == 119 || key == 87) { // W key
-			playerMove(true, false, false, false);
-		} if (key == 115 || key == 83) { // S key
-			playerMove(false, true, false, false);
-		} if (key == 97 || key == 65) { // A key
-			playerMove(false, false, true, false);
-		} if (key == 100 || key == 68) { // D key
-			playerMove(false, false, false, true);
+		// Space to shoot
+		if (key === 32) {
+			playerShoot();
 		}
 	}
 

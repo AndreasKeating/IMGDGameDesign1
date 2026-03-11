@@ -232,7 +232,7 @@ function draw() {
 
 	// Player
 	PS.color(playerX, PLAYER_Y, COLORS.player);
-	PS.radius(playerX, PLAYER_Y, 50); // circle
+	PS.radius(playerX, PLAYER_Y, 50);
 
 	PS.statusText("A/D ◀▶ = move|SPACE = shoot|W ▲ = shield");
 }

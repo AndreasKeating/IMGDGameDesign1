@@ -81,7 +81,7 @@ const TOP_MARGIN = 2;
 const PLAYER_Y = Height - 2;
 
 // Shooting info--------------------------------
-const SHOT_COOLDOWN_TICKS = 4;
+const SHOT_COOLDOWN_TICKS = 2;
 const BULLET_LIMIT = 10;
 
 // Enemy shooting info--------------------------------
@@ -151,10 +151,6 @@ function drawMenu() {
 	PS.glyph(11, 20, 0x25C0); PS.glyphColor(11, 20, COLORS.text); // ◀
 	PS.glyph(13, 20, 0x25B6); PS.glyphColor(13, 20, COLORS.text); // ▶
 	textPrinter(15, 20, "SPACE", COLORS.text);
-
-	// Title art (player with shield)
-	//PS.glyph(15, 8, 0x23E4); // ⬣ (swap this code to try others)
-	//PS.glyphColor(15, 8, COLORS.player);
 
 	PS.statusText("Bullet Barrage");
 }
@@ -238,7 +234,7 @@ function draw() {
 	PS.color(playerX, PLAYER_Y, COLORS.player);
 	PS.radius(playerX, PLAYER_Y, 50); // circle
 
-	PS.statusText("Invaders");
+	PS.statusText("A/D ◀▶ = move|SPACE = shoot|W ▲ = shield");
 }
 
 
@@ -411,7 +407,7 @@ function enemyShooting() {
 
 	// Play at most ONE sound per tick (so it doesn't spam audio)
 	if (fired) {
-		PS.audioPlay("fx_bang", { volume: 0.08 });
+		PS.audioPlay("fx_bang", { volume: 0.20 });
 		// If you prefer the same sound as player, use:
 		// PS.audioPlay("fx_click", { volume: 0.05 });
 	}
@@ -487,7 +483,7 @@ function playerShoot() {
 
 	bullets.push({ x: playerX, y: PLAYER_Y - 1 });
 	shotCooldown = SHOT_COOLDOWN_TICKS;
-	PS.audioPlay("fx_click", { volume: 0.2 });
+	PS.audioPlay("fx_bang", { volume: 0.50 });
 }
 
 
@@ -501,8 +497,8 @@ PS.init = function( system, options ) {
 
 	PS.audioLoad("fx_scratch");
 	PS.audioLoad("fx_click");
+	PS.audioLoad("fx_bang");
 
-	loadMenu();
 };
 
 /*
